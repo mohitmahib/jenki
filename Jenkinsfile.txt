@@ -1,0 +1,46 @@
+node {
+ 	 //Clean workspace before doing anything
+    deleteDir()
+
+    try {
+        stage ('Clone') {
+        	checkout scm
+        }
+	
+        stage ('Build') {
+        	 sh " mvn clean install"
+		 "echo 'shell scripts to build project...'"
+        }
+        stage ('Tests') {
+	        parallel 'static': {
+	             "echo 'shell scripts to run static tests...'"
+	        },
+	        'unit': {
+		     sh "mvn test"
+	             "echo 'shell scripts to run unit tests...'"
+	        },
+	        'integration': {
+		     sh "mvn verify"
+	             "echo 'shell scripts to run integration tests...'"
+	        }
+        }	
+      	stage ('Deploy') {
+	def pid="ps -fe | grep tomcat"
+  	if (pid !=null)
+  	{
+    		echo "Tomcat is already running"
+		sh "D:/Software/apache-tomcat-8.5.31/bin/shutdown.sh"
+		sh "cp C:/Users/abc/.m2/repository/com/aws/codestar/projecttemplates/HelloWorld/1.0/HelloWorld-1.0.war D:/Software/apache-tomcat-8.5.31/webapps"
+		sh "D:/Software/apache-tomcat-8.5.31/bin/startup.sh"
+  	}else
+		echo "Tomcat is already shutdown"
+		
+		sh "cp C:/Users/abc/.m2/repository/com/aws/codestar/projecttemplates/HelloWorld/1.0/HelloWorld-1.0.war D:/Software/apache-tomcat-8.5.31/webapps"
+		sh "D:/Software/apache-tomcat-8.5.31/bin/startup.sh"
+	
+	}
+    } catch (err) {
+        currentBuild.result = 'FAILED'
+        throw err
+    }
+}
